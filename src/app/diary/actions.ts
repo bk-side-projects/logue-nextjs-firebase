@@ -34,7 +34,7 @@ export async function analyzeDiaryEntry(entry: string) {
   try {
     const fullPrompt = `${prompt} "${entry}"`;
     const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
+    const response = result.response; // Removed unnecessary await
     const text = response.text();
 
     // The model should return a raw JSON string. Let's parse it.
