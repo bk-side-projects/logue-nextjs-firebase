@@ -44,22 +44,28 @@ export default function DiaryPage() {
     setAnalysis(null);
 
     try {
-        // First, save the original entry to Firestore
+        // Save the original entry to Firestore first.
         await addDoc(collection(db, "diaryEntries"), {
             originalEntry: entry,
             timestamp: serverTimestamp()
         });
 
-        // Then, analyze the entry with Gemini
+        // Then, call the server action to analyze.
         const result = await analyzeDiaryEntry(entry);
+        
+        // If the server returned an error, display it.
         if (result.error) {
+            // The error from the server is now the main piece of information.
             throw new Error(result.error);
         }
+
+        // If successful, update the state with the analysis.
         setAnalysis(result as AnalysisResult);
 
     } catch (e: any) {
-        console.error(e);
-        setError('An error occurred during analysis or saving. Please try again.');
+        console.error("Caught an error in handleAnalyze:", e);
+        // Display the specific error message from the server action.
+        setError(e.message);
     } finally {
         setIsLoading(false);
     }
@@ -92,57 +98,62 @@ export default function DiaryPage() {
             >
               {isLoading ? 'Analyzing...' : 'Analyze My Writing'}
             </button>
-            {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
           </div>
 
           {/* Analysis Output Section */}
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col">
             <h2 className="text-2xl font-bold mb-4 text-gray-800">AI Feedback</h2>
-            {isLoading && (
-              <div className="flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#6a4bff]"></div>
-              </div>
-            )}
-            {analysis && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700">Fluency Score</h3>
-                  <div className="relative pt-1">
-                    <div className="overflow-hidden h-4 text-xs flex rounded bg-purple-200">
-                      <div style={{ width: `${analysis.fluencyScore}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-[#6a4bff] to-[#8a70ff]"></div>
+            <div className="flex-grow flex justify-center items-center">
+              {isLoading && (
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#6a4bff]"></div>
+              )}
+              {error && (
+                  <div className="text-center text-red-500 bg-red-50 p-4 rounded-lg">
+                      <p className="font-bold mb-2">Analysis Failed</p>
+                      <p className="text-sm">{error}</p>
+                  </div>
+              )}
+              {analysis && (
+                <div className="space-y-6 w-full">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700">Fluency Score</h3>
+                    <div className="relative pt-1">
+                      <div className="overflow-hidden h-4 text-xs flex rounded bg-purple-200">
+                        <div style={{ width: `${analysis.fluencyScore}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-[#6a4bff] to-[#8a70ff]"></div>
+                      </div>
+                      <p className="text-right font-bold text-[#6a4bff]">{analysis.fluencyScore}/100</p>
                     </div>
-                    <p className="text-right font-bold text-[#6a4bff]">{analysis.fluencyScore}/100</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700">Suggested Correction</h3>
+                    <p className="bg-green-100/60 p-3 rounded-lg text-green-800 italic">'{analysis.correctedText}'</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700">Explanation</h3>
+                    <p className="text-gray-600">{analysis.explanation}</p>
+                  </div>
+
+                  <div>
+                      <h3 className="text-lg font-semibold text-gray-700">Key Expressions to Learn</h3>
+                      <ul className="space-y-2 mt-2">
+                          {analysis.keyExpressions.map((item, index) => (
+                              <li key={index} className="bg-gray-100 p-3 rounded-lg">
+                                  <p className="font-bold text-gray-800">{item.expression}</p>
+                                  <p className="text-sm text-gray-600">{item.meaning}</p>
+                              </li>
+                          ))}
+                      </ul>
                   </div>
                 </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700">Suggested Correction</h3>
-                  <p className="bg-green-100/60 p-3 rounded-lg text-green-800 italic">'{analysis.correctedText}'</p>
+              )}
+              {!isLoading && !analysis && !error && (
+                <div className="text-center text-gray-500">
+                  <p>Your analysis will appear here once you submit an entry.</p>
                 </div>
-                
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-700">Explanation</h3>
-                  <p className="text-gray-600">{analysis.explanation}</p>
-                </div>
-
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-700">Key Expressions to Learn</h3>
-                    <ul className="space-y-2 mt-2">
-                        {analysis.keyExpressions.map((item, index) => (
-                            <li key={index} className="bg-gray-100 p-3 rounded-lg">
-                                <p className="font-bold text-gray-800">{item.expression}</p>
-                                <p className="text-sm text-gray-600">{item.meaning}</p>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-              </div>
-            )}
-            {!isLoading && !analysis && (
-              <div className="flex justify-center items-center h-full text-center text-gray-500">
-                <p>Your analysis will appear here once you submit an entry.</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>

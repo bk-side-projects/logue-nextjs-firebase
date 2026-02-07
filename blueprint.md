@@ -23,31 +23,28 @@
     - `app/page.tsx`의 Hero 섹션 문구 및 디자인을 PRD에 맞게 재구성.
     - 실제 사용 모습(기능 소개)을 유추할 수 있는 시각적 요소 배치.
 
-### 2단계: [작성] 엄격한 영어 전용 에디터
-
-- **목표:** 사용자가 '학습'보다 '기록'에 집중할 수 있는 깔끔한 노트 형태의 다이어리 작성 환경 제공.
+### 2단계: [작성] 엄격한 영어 전용 에디터 & 기본 DB 연동
+- **목표:** 사용자가 영어로 일기를 작성하고, 그 기록을 데이터베이스에 저장하는 기본 흐름을 완성.
 - **구현 내용:**
-    - `app/diary/page.tsx`에 미니멀한 노트 디자인 UI 적용.
-    - **영어 전용 필터링:** 한글 등 타 언어 입력 시 '완료' 버튼 비활성화 (Regex: `/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/`).
+    - 일기 작성을 위한 `app/diary/page.tsx` 페이지 생성.
+    - **Cloud Firestore** 초기화 및 `diaryEntries` 컬렉션에 원본 일기를 저장하는 로직 구현.
+    - **배포 및 안정화:** Cloudflare Pages를 통해 성공적으로 프로덕션 환경에 배포 완료. (`nodejs_compat` 플래그 설정 포함)
 
 ### 3단계: [분석 및 학습] AI 코칭 시스템
-
 - **목표:** Gemini AI를 연동하여 단순 문법 교정을 넘어, 원어민의 관점에서 문장을 다듬어주는 핵심 기능 구현.
 - **구현 내용:**
+    - **(진행중)** Cloudflare 환경 변수에 `GOOGLE_API_KEY`를 등록하여 AI 기능 활성화.
     - **Server Action**을 활용하여 Gemini API 호출 로직 구현.
     - **AI 프롬프트 구성:** "당신은 원어민 영어 튜터입니다. 다음 다이어리 내용을 읽고 1. 자연스러운 표현으로 교정 2. 주요 문법/표현 설명 3. 유창성 점수를 JSON 형태로 반환하세요."
     - AI 분석 결과를 사용자에게 보여주는 UI 컴포넌트 개발.
-    - **(확장)** Google Cloud TTS API를 연동하여 교정된 문장의 원어민 발음 제공.
 
 ### 4단계: [인증 및 DB] 사용자 기반 설정
-
 - **목표:** 개인화된 서비스(일기 저장, 단어장)를 위한 사용자 인증 시스템 및 데이터베이스 구축.
 - **구현 내용:**
     - **Firebase Authentication**을 이용한 회원가입 및 로그인 기능 구현.
-    - **Cloud Firestore** 초기화 및 데이터 모델링 (Users, Diaries, Vault).
+    - **Cloud Firestore** 데이터 모델링 변경 (공용 `diaries` -> `users/{uid}/diaries` 구조).
 
 ### 5단계: [관리] 나만의 언어 자산화
-
 - **목표:** 사용자가 학습한 내용을 스스로 관리하며 지속적인 성장을 체감할 수 있는 기능 구현.
 - **구현 내용:**
     - **개인 보관함 (Vault):** 첨삭된 문장 중 기억하고 싶은 것을 저장하는 기능.
@@ -56,11 +53,8 @@
 ---
 
 ## 3. 기술 명세
-
 - **프레임워크:** Next.js (App Router)
 - **UI:** Tailwind CSS
-- **백엔드/DB:** Firebase (Authentication, Firestore, Hosting)
-- **AI 모델:** **Gemini 1.5 Pro / Flash**
-- **외부 API:** Google Cloud TTS
-- **버전 관리:** Git & GitHub
-
+- **AI:** Google Gemini
+- **인증/DB:** Firebase Authentication, Cloud Firestore
+- **배포:** Cloudflare Pages
