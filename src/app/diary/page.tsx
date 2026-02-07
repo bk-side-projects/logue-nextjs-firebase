@@ -20,18 +20,26 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
-// This type now correctly expects keyExpressions to be an array of strings.
-type AnalysisResult = {
+// Defines the shape of a successful analysis
+type SuccessAnalysis = {
   correctedText: string;
   explanation: string;
   fluencyScore: number;
   keyExpressions: string[];
-  error?: string; // Also include the optional error property for type safety
 };
+
+// Defines the shape of a failed analysis
+type ErrorAnalysis = {
+  error: string;
+};
+
+// The result can be one of the two types above
+type AnalysisResult = SuccessAnalysis | ErrorAnalysis;
 
 export default function DiaryPage() {
   const [entry, setEntry] = useState('');
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  // The analysis state is now strictly for successful results
+  const [analysis, setAnalysis] = useState<SuccessAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -51,27 +59,26 @@ export default function DiaryPage() {
           timestamp: serverTimestamp()
       });
 
-      // Then, call the server action to analyze.
+      // The result from the server action will match our AnalysisResult type
       const result: AnalysisResult = await analyzeDiaryEntry(entry);
 
-      // The server action returns an object with an `error` key if something went wrong.
-      if (result.error) {
+      // Use a type guard to check if the result is an error
+      if ('error' in result) {
         setError(result.error);
         setAnalysis(null);
       } else {
-        // On success, clear previous errors and set the analysis data.
+        // If not an error, it must be a success, so we can safely set the analysis
         setAnalysis(result);
         setError('');
       }
     } catch (e: any) {
-      // This will catch unexpected errors, e.g., network issues or if the server action itself crashes.
       console.error("An unexpected error occurred during analysis:", e);
       setError("A critical error occurred. Please check the logs or try again later.");
     } finally {
-      // This block ensures the loading spinner is turned off, regardless of success or failure.
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-50 text-[#1a1a1a] p-4 sm:p-6 md:p-10">
@@ -112,7 +119,6 @@ export default function DiaryPage() {
               {error && (
                   <div className="text-center text-red-500 bg-red-50 p-4 rounded-lg">
                       <p className="font-bold mb-2">Analysis Failed</p>
-                      {/* The error message from the server is now displayed directly to the user */}
                       <p className="text-sm">{error}</p>
                   </div>
               )}
@@ -141,7 +147,6 @@ export default function DiaryPage() {
                   <div>
                       <h3 className="text-lg font-semibold text-gray-700">Key Expressions to Learn</h3>
                       <ul className="space-y-2 mt-2">
-                          {/* This now correctly maps over an array of strings */}
                           {analysis.keyExpressions.map((expression, index) => (
                               <li key={index} className="bg-gray-100 p-3 rounded-lg">
                                   <p className="font-bold text-gray-800">{expression}</p>
