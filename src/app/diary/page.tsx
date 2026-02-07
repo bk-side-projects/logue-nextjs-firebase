@@ -20,12 +20,13 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
-
+// This type now correctly expects keyExpressions to be an array of strings.
 type AnalysisResult = {
   correctedText: string;
   explanation: string;
   fluencyScore: number;
-  keyExpressions: Array<{ expression: string; meaning: string }>;
+  keyExpressions: string[];
+  error?: string; // Also include the optional error property for type safety
 };
 
 export default function DiaryPage() {
@@ -44,30 +45,31 @@ export default function DiaryPage() {
     setAnalysis(null);
 
     try {
-        // Save the original entry to Firestore first.
-        await addDoc(collection(db, "diaryEntries"), {
-            originalEntry: entry,
-            timestamp: serverTimestamp()
-        });
+      // Save the original entry to Firestore first.
+      await addDoc(collection(db, "diaryEntries"), {
+          originalEntry: entry,
+          timestamp: serverTimestamp()
+      });
 
-        // Then, call the server action to analyze.
-        const result = await analyzeDiaryEntry(entry);
-        
-        // If the server returned an error, display it.
-        if (result.error) {
-            // The error from the server is now the main piece of information.
-            throw new Error(result.error);
-        }
+      // Then, call the server action to analyze.
+      const result: AnalysisResult = await analyzeDiaryEntry(entry);
 
-        // If successful, update the state with the analysis.
-        setAnalysis(result as AnalysisResult);
-
+      // The server action returns an object with an `error` key if something went wrong.
+      if (result.error) {
+        setError(result.error);
+        setAnalysis(null);
+      } else {
+        // On success, clear previous errors and set the analysis data.
+        setAnalysis(result);
+        setError('');
+      }
     } catch (e: any) {
-        console.error("Caught an error in handleAnalyze:", e);
-        // Display the specific error message from the server action.
-        setError(e.message);
+      // This will catch unexpected errors, e.g., network issues or if the server action itself crashes.
+      console.error("An unexpected error occurred during analysis:", e);
+      setError("A critical error occurred. Please check the logs or try again later.");
     } finally {
-        setIsLoading(false);
+      // This block ensures the loading spinner is turned off, regardless of success or failure.
+      setIsLoading(false);
     }
   };
 
@@ -110,6 +112,7 @@ export default function DiaryPage() {
               {error && (
                   <div className="text-center text-red-500 bg-red-50 p-4 rounded-lg">
                       <p className="font-bold mb-2">Analysis Failed</p>
+                      {/* The error message from the server is now displayed directly to the user */}
                       <p className="text-sm">{error}</p>
                   </div>
               )}
@@ -138,10 +141,10 @@ export default function DiaryPage() {
                   <div>
                       <h3 className="text-lg font-semibold text-gray-700">Key Expressions to Learn</h3>
                       <ul className="space-y-2 mt-2">
-                          {analysis.keyExpressions.map((item, index) => (
+                          {/* This now correctly maps over an array of strings */}
+                          {analysis.keyExpressions.map((expression, index) => (
                               <li key={index} className="bg-gray-100 p-3 rounded-lg">
-                                  <p className="font-bold text-gray-800">{item.expression}</p>
-                                  <p className="text-sm text-gray-600">{item.meaning}</p>
+                                  <p className="font-bold text-gray-800">{expression}</p>
                               </li>
                           ))}
                       </ul>
