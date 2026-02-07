@@ -1,126 +1,151 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { analyzeDiaryEntry } from './actions'; // Import the server action
+import { useState } from 'react';
+import { analyzeDiaryEntry } from './actions';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-// A simple icon component for the back arrow
-const BackArrowIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-  </svg>
-);
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
+
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+
+
+type AnalysisResult = {
+  correctedText: string;
+  explanation: string;
+  fluencyScore: number;
+  keyExpressions: Array<{ expression: string; meaning: string }>;
+};
 
 export default function DiaryPage() {
   const [entry, setEntry] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const containsNonEnglish = (text: string) => !/^[a-zA-Z0-9.,!?'"\s\n]*$/.test(text);
-
-  const isInvalid = useMemo(() => entry.trim() === '' || containsNonEnglish(entry), [entry]);
-
-  const handleComplete = async () => {
-    if (isInvalid) {
-      alert('Please write something in English only.');
+  const handleAnalyze = async () => {
+    if (!entry.trim()) {
+      setError('Please write something in your diary first.');
       return;
     }
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-    setError(null);
+    setIsLoading(true);
+    setError('');
+    setAnalysis(null);
 
-    const result = await analyzeDiaryEntry(entry);
+    try {
+        // First, save the original entry to Firestore
+        await addDoc(collection(db, "diaryEntries"), {
+            originalEntry: entry,
+            timestamp: serverTimestamp()
+        });
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setAnalysisResult(result);
+        // Then, analyze the entry with Gemini
+        const result = await analyzeDiaryEntry(entry);
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        setAnalysis(result as AnalysisResult);
+
+    } catch (e: any) {
+        console.error(e);
+        setError('An error occurred during analysis or saving. Please try again.');
+    } finally {
+        setIsLoading(false);
     }
-
-    setIsAnalyzing(false);
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-100 p-4 font-serif">
-        <header className="w-full max-w-4xl mx-auto py-4 px-2 flex justify-between items-center">
-            <Link href="/" className="flex items-center text-gray-500 hover:text-gray-800 transition-colors">
-                <BackArrowIcon />
-                <span className="ml-2 font-sans font-semibold">Back to Home</span>
-            </Link>
-        </header>
-
-        <div className="w-full max-w-4xl bg-white rounded-lg shadow-2xl flex flex-col mb-8" style={{border: '1px solid #EAEAEA'}}>
-            <div className="p-6 border-b-2 border-dashed border-gray-200">
-                <p className="text-center text-gray-500 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <h1 className="text-3xl text-gray-800 font-bold text-center tracking-wider mt-2">What's on your mind?</h1>
-            </div>
-
-            <div className="p-6 flex-grow bg-[repeating-linear-gradient(white,white_29px,#dce1e6_30px,#dce1e6_31px)]">
-              <textarea
-                value={entry}
-                onChange={(e) => setEntry(e.target.value)}
-                className="w-full h-full text-lg text-gray-800 bg-transparent focus:outline-none resize-none leading-8 tracking-wide"
-                placeholder="Start writing..."
-                rows={15}
-              />
-            </div>
-
-            <div className="p-6 bg-gray-50 rounded-b-lg flex justify-end items-center border-t border-gray-200">
-              {isInvalid && entry.length > 0 && <p className="text-red-500 mr-4 font-sans">English only, please.</p>}
-              <button
-                onClick={handleComplete}
-                disabled={isInvalid || isAnalyzing}
-                className={`px-8 py-3 text-white font-sans font-bold rounded-lg transition-all duration-300 ${isInvalid || isAnalyzing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} ${isAnalyzing ? 'animate-pulse' : ''}`}>
-                {isAnalyzing ? 'Analyzing...' : 'Complete & Analyze'}
-              </button>
-            </div>
-        </div>
+    <div className="flex flex-col items-center min-h-screen bg-gray-50 text-[#1a1a1a] p-4 sm:p-6 md:p-10">
+      <div className="w-full max-w-4xl mx-auto">
         
-        {/* Error Message */}
-        {error && (
-            <div className="w-full max-w-4xl my-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
-                <strong className="font-bold font-sans">Error: </strong>
-                <span className="block sm:inline font-sans">{error}</span>
-            </div>
-        )}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900">My English Diary</h1>
+          <p className="text-md sm:text-lg text-gray-600 mt-2">Write about your day. Our AI will provide feedback to make your English more natural.</p>
+        </div>
 
-        {/* Analysis Result Section */}
-        {analysisResult && (
-            <div className="w-full max-w-4xl bg-white rounded-lg shadow-2xl p-8 border border-gray-200 animate-fade-in">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6 font-sans flex items-center">AI Feedback ✨</h2>
-                <div className="grid md:grid-cols-2 gap-8">
-                    {/* Left Column: Correction and Explanation */}
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="font-sans font-semibold text-purple-700">Suggested Improvement:</h3>
-                            <p className="text-lg text-gray-800 leading-relaxed p-4 bg-purple-50 rounded-md mt-2">{analysisResult.correctedText}</p>
-                        </div>
-                        <div>
-                            <h3 className="font-sans font-semibold text-blue-700">Explanation:</h3>
-                            <p className="text-gray-700 leading-relaxed p-4 bg-blue-50 rounded-md mt-2">{analysisResult.explanation}</p>
-                        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* Diary Input Section */}
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">Today's Entry</h2>
+            <textarea
+              className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6a4bff] focus:border-transparent transition-shadow resize-none"
+              placeholder="What did you do today? What are you thinking about?"
+              value={entry}
+              onChange={(e) => setEntry(e.target.value)}
+            />
+            <button
+              className="w-full mt-4 bg-[#6a4bff] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#5238cc] transition-transform transform hover:scale-105 shadow-lg disabled:bg-gray-400 disabled:scale-100"
+              onClick={handleAnalyze}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Analyzing...' : 'Analyze My Writing'}
+            </button>
+            {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
+          </div>
+
+          {/* Analysis Output Section */}
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">AI Feedback</h2>
+            {isLoading && (
+              <div className="flex justify-center items-center h-full">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#6a4bff]"></div>
+              </div>
+            )}
+            {analysis && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-700">Fluency Score</h3>
+                  <div className="relative pt-1">
+                    <div className="overflow-hidden h-4 text-xs flex rounded bg-purple-200">
+                      <div style={{ width: `${analysis.fluencyScore}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-[#6a4bff] to-[#8a70ff]"></div>
                     </div>
-                    {/* Right Column: Score and Key Expressions */}
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="font-sans font-semibold text-green-700">Fluency Score:</h3>
-                            <div className="p-4 bg-green-50 rounded-md mt-2 flex items-center justify-center">
-                                <p className="text-6xl font-bold text-green-600">{analysisResult.fluencyScore}<span className="text-3xl">/100</span></p>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="font-sans font-semibold text-yellow-700">Key Expressions to Remember:</h3>
-                            <ul className="list-disc list-inside p-4 bg-yellow-50 rounded-md mt-2 space-y-2">
-                                {analysisResult.keyExpressions?.map((exp: string, index: number) => (
-                                    <li key={index} className="text-gray-700 font-semibold">{exp}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
+                    <p className="text-right font-bold text-[#6a4bff]">{analysis.fluencyScore}/100</p>
+                  </div>
                 </div>
-            </div>
-        )}
+
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-700">Suggested Correction</h3>
+                  <p className="bg-green-100/60 p-3 rounded-lg text-green-800 italic">'{analysis.correctedText}'</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-700">Explanation</h3>
+                  <p className="text-gray-600">{analysis.explanation}</p>
+                </div>
+
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-700">Key Expressions to Learn</h3>
+                    <ul className="space-y-2 mt-2">
+                        {analysis.keyExpressions.map((item, index) => (
+                            <li key={index} className="bg-gray-100 p-3 rounded-lg">
+                                <p className="font-bold text-gray-800">{item.expression}</p>
+                                <p className="text-sm text-gray-600">{item.meaning}</p>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+              </div>
+            )}
+            {!isLoading && !analysis && (
+              <div className="flex justify-center items-center h-full text-center text-gray-500">
+                <p>Your analysis will appear here once you submit an entry.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
