@@ -1,3 +1,4 @@
+'''
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/AuthContext';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 import AIAnalysisResult, { AIAnalysisResponse } from '../../components/AIAnalysisResult'; 
 import { analyzeDiaryEntry } from '../actions'; 
 
-const QuillEditor = dynamic(() => import('react-quill'), { ssr: false });
+// CRITICAL CHANGE: We are now importing our safe wrapper component instead of react-quill directly.
+// This wrapper uses forwardRef to avoid the deprecated findDOMNode API.
+const QuillEditor = dynamic(() => import('../../components/ClientQuill'), { ssr: false });
 
 const AnalyzingSpinner = () => (
     <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex flex-col items-center justify-center z-50">
@@ -143,3 +145,4 @@ export default function DiaryPage() {
     </div>
   );
 }
+'''
