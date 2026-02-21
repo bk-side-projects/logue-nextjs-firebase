@@ -9,9 +9,9 @@ import dynamic from 'next/dynamic';
 import AIAnalysisResult, { AIAnalysisResponse } from '../../components/AIAnalysisResult'; 
 import { analyzeDiaryEntry } from '../actions'; 
 
-// CRITICAL CHANGE: We are now importing our safe wrapper component instead of react-quill directly.
-// This wrapper uses forwardRef to avoid the deprecated findDOMNode API.
-const QuillEditor = dynamic(() => import('../../components/ClientQuill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+
+const QuillEditor = dynamic(() => import('react-quill'), { ssr: false });
 
 const AnalyzingSpinner = () => (
     <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex flex-col items-center justify-center z-50">
@@ -27,7 +27,15 @@ export default function DiaryPage() {
   const [analysisResult, setAnalysisResult] = useState<(AIAnalysisResponse & { id: string }) | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Step 1: Cleanly separate the mounting logic.
+  // This useEffect will run ONLY ONCE after the component mounts on the client.
+  useEffect(() => {
+    setIsMounted(true);
+  }, []); // Empty dependency array ensures it runs only once.
+
+  // Step 2: Handle user authentication logic separately.
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
@@ -42,28 +50,24 @@ export default function DiaryPage() {
     );
   }
 
-  if (!user) {
+  // Render nothing until the user is authenticated and the component is mounted.
+  if (!user || !isMounted) {
     return null;
   }
 
   const handleAnalysis = async () => {
     if (!diaryContent.trim() || !user) return;
-
     setIsAnalyzing(true);
     setAnalysisError(null);
-    
     const formData = new FormData();
     formData.append('diaryContent', diaryContent);
-    formData.append('uid', user.uid); // Pass the user's UID
-
+    formData.append('uid', user.uid); 
     const result = await analyzeDiaryEntry(null, formData);
-
     if ('error' in result) {
       setAnalysisError(result.error);
     } else {
       setAnalysisResult(result);
     }
-
     setIsAnalyzing(false);
   };
 
@@ -116,6 +120,7 @@ export default function DiaryPage() {
                     <p className="text-gray-500 mb-8">Write in English. Your AI tutor will help you refine it.</p>
           
                     <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+                        {/* The editor is now doubly protected: it won't render until authentication is confirmed AND the component is client-side mounted. */}
                         <QuillEditor
                         value={diaryContent}
                         onChange={setDiaryContent}
