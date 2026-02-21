@@ -37,7 +37,8 @@
 
 - **4-2. [AI] Gemini 코칭 엔진 연동 (완료):**
     - `@google/generative-ai` SDK 설치 및 Server Action `analyzeDiaryEntry` 함수 구현.
-    - 원어민 튜터 역할을 수행하는 정교한 AI 프롬프트 설계 (문장별 분석, 대안, 핵심 표현 설명 포함 JSON 반환).
+    - 원어민 튜터 역할을 수행하는 정교한 AI 프롬프트 설계.
+    - **AI 모델을 `gemini-pro`에서 `gemini-1.5-pro-latest`로 업그레이드하여 분석 품질 향상.**
 
 - **4-3. [DB] 학습 기록 저장 및 개인화 (완료):**
     - Firestore 데이터 모델을 `users/{uid}/entries` 와 `users/{uid}/vault` 구조로 설계.
@@ -48,20 +49,7 @@
     - `/diary/history` 경로에 작성 일기 목록 페이지 생성.
     - 과거 일기 및 AI 피드백 상세 조회 기능 구현.
 
----
-
-## 5. 5단계: [배포] 전 세계에 Logue 공개
-
+### 5단계: [배포] 전 세계에 Logue 공개 (완료)
 - **목표:** Firebase App Hosting을 사용하여 Logue 서비스를 실제 프로덕션 환경에 배포하고, 전 세계 사용자가 접근할 수 있는 공개 URL을 확보.
-- **5-1. [인프라] Firebase 프로젝트 요금제 업그레이드 (완료):**
-    - App Hosting 기능을 사용하기 위해 Firebase 프로젝트를 'Blaze' 요금제로 성공적으로 업그레이드 완료.
-- **5-2. [백엔드] App Hosting 백엔드 생성 (완료):**
-    - `firebase apphosting:backends:create` 명령어를 실행하여 App Hosting 인프라 프로비저닝 및 GitHub 리포지토리 연결 성공.
-- **5-3. [설정] 배포 설정 수정 (완료):**
-    - 잘못 입력된 루트 디렉토리(`y`)를 올바른 값(`/`)으로 Firebase 콘솔에서 직접 수정 완료.
-- **5-4. [CI/CD] 최종 배포 실행 (진행중):**
-    - 수정된 설정을 기반으로 새로운 배포(Rollout)를 시작하여 GitHub 리포지토리의 코드를 실제 프로덕션 환경에 빌드 및 배포.
-- **5-5. [출시] 서비스 URL 확인 (대기):**
-    - 배포가 완료된 Logue 서비스의 라이브 URL을 확인하고 접속 테스트.
 
 ---

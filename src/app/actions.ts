@@ -51,7 +51,7 @@ export async function analyzeDiaryEntry(
   const diaryContent = stripHtml(diaryContentHtml);
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
     const prompt = `
         You are an expert English tutor AI named \"Logue\". Analyze the following diary entry sentence by sentence.
         For each sentence, provide: {original, suggestion, explanation, isPerfect: boolean}.
