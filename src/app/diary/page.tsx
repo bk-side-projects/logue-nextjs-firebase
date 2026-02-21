@@ -5,13 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/AuthContext';
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
 import AIAnalysisResult, { AIAnalysisResponse } from '../../components/AIAnalysisResult'; 
-import { analyzeDiaryEntry } from '../actions'; 
-
-import 'react-quill/dist/quill.snow.css';
-
-const QuillEditor = dynamic(() => import('react-quill'), { ssr: false });
+import { analyzeDiaryEntry } from '../actions';
 
 const AnalyzingSpinner = () => (
     <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex flex-col items-center justify-center z-50">
@@ -27,11 +22,6 @@ export default function DiaryPage() {
   const [analysisResult, setAnalysisResult] = useState<(AIAnalysisResponse & { id: string }) | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,7 +47,7 @@ export default function DiaryPage() {
     setAnalysisError(null);
     const formData = new FormData();
     formData.append('diaryContent', diaryContent);
-    formData.append('uid', user.uid); 
+    formData.append('uid', user.uid);
     const result = await analyzeDiaryEntry(null, formData);
     if ('error' in result) {
       setAnalysisError(result.error);
@@ -72,16 +62,6 @@ export default function DiaryPage() {
       setAnalysisResult(null);
       setAnalysisError(null);
   }
-
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      ['link'],
-      ['clean'],
-    ],
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 font-sans">
@@ -116,16 +96,12 @@ export default function DiaryPage() {
                     <p className="text-gray-500 mb-8">Write in English. Your AI tutor will help you refine it.</p>
           
                     <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
-                        {isMounted && user && (
-                            <QuillEditor
+                         <textarea
                             value={diaryContent}
-                            onChange={setDiaryContent}
-                            modules={quillModules}
-                            theme="snow"
+                            onChange={(e) => setDiaryContent(e.target.value)}
                             placeholder="I went to a cafe today and..."
-                            className="bg-white"
-                            />
-                        )}
+                            className="w-full h-64 p-4 text-lg border-none focus:ring-0 resize-none bg-white rounded-xl"
+                        />
                     </div>
                     <div className="flex justify-end mt-6">
                         <button
