@@ -29,13 +29,10 @@ export default function DiaryPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Step 1: Cleanly separate the mounting logic.
-  // This useEffect will run ONLY ONCE after the component mounts on the client.
   useEffect(() => {
     setIsMounted(true);
-  }, []); // Empty dependency array ensures it runs only once.
+  }, []);
 
-  // Step 2: Handle user authentication logic separately.
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
@@ -50,8 +47,7 @@ export default function DiaryPage() {
     );
   }
 
-  // Render nothing until the user is authenticated and the component is mounted.
-  if (!user || !isMounted) {
+  if (!user) {
     return null;
   }
 
@@ -120,15 +116,16 @@ export default function DiaryPage() {
                     <p className="text-gray-500 mb-8">Write in English. Your AI tutor will help you refine it.</p>
           
                     <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
-                        {/* The editor is now doubly protected: it won't render until authentication is confirmed AND the component is client-side mounted. */}
-                        <QuillEditor
-                        value={diaryContent}
-                        onChange={setDiaryContent}
-                        modules={quillModules}
-                        theme="snow"
-                        placeholder="I went to a cafe today and..."
-                        className="bg-white"
-                        />
+                        {isMounted && user && (
+                            <QuillEditor
+                            value={diaryContent}
+                            onChange={setDiaryContent}
+                            modules={quillModules}
+                            theme="snow"
+                            placeholder="I went to a cafe today and..."
+                            className="bg-white"
+                            />
+                        )}
                     </div>
                     <div className="flex justify-end mt-6">
                         <button
