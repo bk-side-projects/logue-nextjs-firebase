@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
-import { AuthProvider } from "../lib/AuthContext"; // Corrected path
+import "react-quill/dist/quill.snow.css"; // Add this line
+import { AuthProvider } from "../lib/AuthContext"; 
 
 export const metadata: Metadata = {
   title: "Create Next App",
