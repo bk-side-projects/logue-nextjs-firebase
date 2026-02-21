@@ -1,18 +1,23 @@
 
+// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
+// For more information on how to get this, see:
+// https://firebase.google.com/docs/web/setup#get-config
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: "AIzaSyCMsUzRSOG5kd751dnPl61Y5PEGY6T2mvs",
+  authDomain: "eng-dairy-web.firebaseapp.com",
+  projectId: "eng-dairy-web",
+  storageBucket: "eng-dairy-web.firebasestorage.app",
+  messagingSenderId: "405984057973",
+  appId: "1:405984057973:web:775d04563523e024e7763c",
+  measurementId: "G-2TMRRBX2V9"
 };
 
-// Stabilized Firebase initialization
+// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
 
-export { db };
+export { app };
