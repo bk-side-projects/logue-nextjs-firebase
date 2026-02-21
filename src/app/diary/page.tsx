@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../lib/AuthContext';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css'; // Import Quill styles
 import AIAnalysisResult, { AIAnalysisResponse } from '../../components/AIAnalysisResult'; 
 import { analyzeDiaryEntry } from '../actions'; 
 
